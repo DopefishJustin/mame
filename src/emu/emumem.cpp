@@ -127,7 +127,7 @@ template<int Width, int AddrShift, int Endian> memory_units_descriptor<Width, Ad
 			active_count ++;
 	u32 active_count_log = active_count == 1 ? 0 : active_count == 2 ? 1 : active_count == 4 ? 2 : active_count == 8 ? 3 : 0xff;
 	if(active_count_log == 0xff)
-		fatalerror("Bad unitmask\n");
+		abort();
 	s8 base_shift = Width - access_width - active_count_log;
 	s8 shift = base_shift + AddrShift;
 
@@ -1311,7 +1311,7 @@ template<int HighBits, int Width, int AddrShift, int Endian> void handler_entry_
 					rkey1 &= ~handler_entry::START;
 				if(ent != end_entry)
 					rkey1 &= ~handler_entry::END;
-				mismatched_patch(descriptor, rkey1, mappings, m_dispatch[end]);
+				mismatched_patch(descriptor, rkey1, mappings, m_dispatch[ent]);
 				m_ranges[ent].set(ostart, oend);
 			}
 		}
@@ -1607,7 +1607,7 @@ template<int HighBits, int Width, int AddrShift, int Endian> void handler_entry_
 					rkey1 &= ~handler_entry::START;
 				if(ent != end_entry)
 					rkey1 &= ~handler_entry::END;
-				mismatched_patch(descriptor, rkey1, mappings, m_dispatch[end]);
+				mismatched_patch(descriptor, rkey1, mappings, m_dispatch[ent]);
 				m_ranges[ent].set(ostart, oend);
 			}
 		}
@@ -1974,7 +1974,7 @@ private:
         check_optimize_all("install_read_handler", 8 << AccessWidth, addrstart, addrend, addrmask, addrmirror, addrselect, unitmask, cswidth, nstart, nend, nmask, nmirror, nunitmask, ncswidth);
 
 		auto hand_r = new handler_entry_read_delegate<AccessWidth, -AccessWidth, Endian>(this, handler_r);
-		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_r, nstart, nend, nmask, unitmask, cswidth);
+		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_r, nstart, nend, nmask, nunitmask, ncswidth);
 		hand_r->set_address_info(descriptor.get_handler_start(), descriptor.get_handler_mask());
 		m_root_read->populate_mismatched(nstart, nend, nmirror, descriptor);
 		invalidate_caches(read_or_write::READ);
@@ -2025,7 +2025,7 @@ private:
         check_optimize_all("install_write_handler", 8 << AccessWidth, addrstart, addrend, addrmask, addrmirror, addrselect, unitmask, cswidth, nstart, nend, nmask, nmirror, nunitmask, ncswidth);
 
 		auto hand_w = new handler_entry_write_delegate<AccessWidth, -AccessWidth, Endian>(this, handler_w);
-		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_w, nstart, nend, nmask, unitmask, cswidth);
+		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_w, nstart, nend, nmask, nunitmask, ncswidth);
 		hand_w->set_address_info(descriptor.get_handler_start(), descriptor.get_handler_mask());
 		m_root_write->populate_mismatched(nstart, nend, nmirror, descriptor);
 		invalidate_caches(read_or_write::WRITE);
@@ -2085,7 +2085,7 @@ private:
         check_optimize_all("install_readwrite_handler", 8 << AccessWidth, addrstart, addrend, addrmask, addrmirror, addrselect, unitmask, cswidth, nstart, nend, nmask, nmirror, nunitmask, ncswidth);
 
 		auto hand_r = new handler_entry_read_delegate <AccessWidth, 0, Endian>(this, handler_r);
-		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_r, nstart, nend, nmask, unitmask, cswidth);
+		memory_units_descriptor<Width, AddrShift, Endian> descriptor(AccessWidth, Endian, hand_r, nstart, nend, nmask, nunitmask, ncswidth);
 		hand_r->set_address_info(descriptor.get_handler_start(), descriptor.get_handler_mask());
 		m_root_read ->populate_mismatched(nstart, nend, nmirror, descriptor);
 
@@ -2839,10 +2839,6 @@ void address_space::locate_memory()
 					VPRINTF(("assigned bank '%s' pointer to memory from range %08X-%08X [%p]\n", bank.second->tag(), entry.m_addrstart, entry.m_addrend, entry.m_memory));
 					break;
 				}
-
-			// if the entry was set ahead of time, override the automatically found pointer
-			if (!bank.second->anonymous() && bank.second->entry() != BANK_ENTRY_UNSPECIFIED)
-				bank.second->set_entry(bank.second->entry());
 		}
 }
 
